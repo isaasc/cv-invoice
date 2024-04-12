@@ -13,7 +13,7 @@ O projeto tem como objetivo digitalizar notas fiscais usando captura de imagens 
 
 ### Tecnologias
 - Python + Pandas;
-- Tesseract OCR;
+- [Tesseract OCR](https://github.com/UB-Mannheim/tesseract/wiki);
 - Angular;
 
 ## Rúbrica da Avaliação
