@@ -1,31 +1,32 @@
-import pytesseract
-from PIL import Image
-import cv2
-import argparse
+import tensorflow as tf
+import matplotlib as plt
+
+mnist = tf.keras.datasets.mnist
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+x_train, x_test = x_train / 255.0, x_test / 255.0
+
+model = tf.keras.models.Sequential([
+    tf.keras.layers.Flatten(input_shape=(28, 28)),
+    tf.keras.layers.Dense(265, activation='relu'),
+    tf.keras.layers.Dense(64, activation='relu'),
+    tf.keras.layers.Dense(10, activation='softmax')
+])
+
+model.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+epocas_hist = model.fit(x_train, y_train, epochs=3, validation_split=0.2)
+
 import pandas as pd
-import os
-import numpy as np
 
-filename = "cupomfiscal2.png"
+df_historico = pd.DataFrame(epocas_hist.history)
+df_historico.info()
 
-image = cv2.imread("./testes/" + filename)
-gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+test_loss, test_acc = model.evaluate(x_test, y_test)
+print(f'Teste acurácia: {test_acc:.3f}\nTeste loss: {test_loss:0.3f}')
 
-kernel = np.ones((2, 2), np.uint8)
-# gray = cv2.erode(gray, kernel, iterations=2)
-# gray = cv2.dilate(gray, kernel, iterations=1) # esses dois juntos funciona melhor pro cupomfiscal.jpg
-
-
-gray = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]  # funciona melhor pro cupomfiscal2.png
-# gray = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=1)
-# elif args["preprocess"] == "blur":
-# gray = cv2.medianBlur(gray, 1)
-
-cv2.imwrite(filename, gray)
-text = pytesseract.image_to_string(Image.open(filename))
-os.remove(filename)
-print(text)
-
-cv2.imshow("Image", image)
-cv2.imshow("Output", gray)
-cv2.waitKey(0)
+model.save('mnist_mlp_model.h5')
