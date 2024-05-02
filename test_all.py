@@ -2,7 +2,7 @@ import develop
 import os
 
 
-tests = os.listdir('testes')
+tests = os.listdir('tests')
 
 for test in tests:
     develop.run_tesseract(test)
