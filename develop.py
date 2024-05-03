@@ -4,6 +4,7 @@ import cv2
 import os
 import re
 import easyocr
+import urllib.request
 
 
 def prepare_image(filename):
@@ -31,41 +32,39 @@ def easyocr_process(filename):
     return result
 
 
-def evaluate_success(text):
-    ptr = 'R(?:S|\\$) +(\\d+,\\d{2})'
+def get_valor_total(text):
+    ptr = 'R. *(\\d+,\\d{2})'
     reMatch = re.search(ptr, str(text))
 
     if reMatch:
-        result = reMatch.group(1)
-        # print("sucesso: " + result)
-        return result
-    else:
-        return None
+        return reMatch.group(1)
+
+
+def get_CNPJ(text):
+    ptr = '\\d{2}\\D\\d{3}\\D\\d{3}\\D\\d{4}\\D\\d{2}'
+    reMatch = re.search(ptr, str(text))
+
+    if reMatch:
+        return reMatch.group(0)
+
+
+def get_from_CNPJ(cnpj):
+    cnpj = re.sub("\\D", "", cnpj)
+    print(cnpj)
+    contents = urllib.request.urlopen("https://api-publica.speedio.com.br/buscarcnpj?cnpj=" + cnpj).read()
+    return contents
 
 
 def run_tesseract(filename):
     prepare_image(filename)
     text = pytesseract_process(filename)
-    # text = easyocr_process(filename)
-    result = evaluate_success(text)
 
     os.remove(filename)
 
-    print(text)
-    # print(f"EasyOCR\n\tTest: {filename}\n\t\tResult: {result}\n")
+    print(get_valor_total(text))
+    cnpj = get_CNPJ(text)
+    print(cnpj)
+    print(get_from_CNPJ(cnpj))
 
+    # print(text)
 
-def run_easyocr(filename):
-    prepare_image(filename)
-    # text = pytesseract_process(filename)
-    text = easyocr_process(filename)
-    result = evaluate_success(text)
-
-    os.remove(filename)
-
-    print(text)
-    # print(f"EasyOCR\n\tTest: {filename}\n\t\tResult: {result}\n")
-
-# cv2.imshow("Image", image)
-# cv2.imshow("Output", gray)
-# cv2.waitKey(0)
