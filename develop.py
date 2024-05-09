@@ -5,31 +5,28 @@ import os
 import re
 import easyocr
 import urllib.request
+import base64
+import numpy as np
 
-
-def prepare_image(filename):
-    image = cv2.imread("./tests/" + filename)
+def prepare_image(base64):
+    image = base64_to_image(base64)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    return gray
 
-    # gray = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]  # funciona melhor pro cupomfiscal2.png
-    cv2.imwrite(filename, gray)
-#   kernel = np.ones((2, 2), np.uint8)
-#   gray = cv2.erode(gray, kernel, iterations=2)
-#   gray = cv2.dilate(gray, kernel, iterations=1)
-#   gray = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=1)
-#   elif args["preprocess"] == "blur":
-#   gray = cv2.medianBlur(gray, 1)
+def base64_to_image(base64_string):
+    # Decodifica a string base64 em uma matriz de bytes
+    decoded_data = base64.b64decode(base64_string)
+    # Converte a matriz de bytes em um array numpy
+    np_data = np.frombuffer(decoded_data, dtype=np.uint8)
+    # Decodifica a imagem usando cv2.imdecode
+    image = cv2.imdecode(np_data, cv2.IMREAD_COLOR)
+
+    return image
 
 
-def pytesseract_process(filename):
-    text = pytesseract.image_to_string(Image.open(filename), config='--psm 4')
+def pytesseract_process(image):
+    text = pytesseract.image_to_string(image, config='--psm 4')
     return text
-
-
-def easyocr_process(filename):
-    reader = easyocr.Reader(['en'], model_storage_directory='./EasyOCR/model/english_g2.pth')
-    result = reader.readtext(filename)
-    return result
 
 
 def get_valor_total(text):
@@ -51,20 +48,20 @@ def get_CNPJ(text):
 def get_from_CNPJ(cnpj):
     cnpj = re.sub("\\D", "", cnpj)
     print(cnpj)
-    contents = urllib.request.urlopen("https://api-publica.speedio.com.br/buscarcnpj?cnpj=" + cnpj).read()
+    contents = urllib.request.urlopen(f"https://api-publica.speedio.com.br/buscarcnpj?cnpj={cnpj}").read()
+    # contents = '{"NOME FANTASIA":"MILANO COMERCIO VAREJISTA DE ALIMENTOS S.A.","RAZAO SOCIAL":"MILANO COMERCIO VAREJISTA DE ALIMENTOS S.A.","CNPJ":"11950487010314","STATUS":"ATIVA","CNAE PRINCIPAL DESCRICAO":"Lanchonetes, casas de ch\xc3\xa1, de sucos e similares","CNAE PRINCIPAL CODIGO":"5611203","CEP":"03310000","DATA ABERTURA":"27/03/2019","DDD":"11","TELEFONE":"47668200","EMAIL":"baciodilatte@baciodilatte.com.br","TIPO LOGRADOURO":"RUA","LOGRADOURO":"ITAPURA","NUMERO":"1390","COMPLEMENTO":"","BAIRRO":"VILA GOMES CARDIM","MUNICIPIO":"S\xc3\xa3o paulo","UF":"SP"}'
     return contents
 
 
-def run_tesseract(filename):
-    prepare_image(filename)
-    text = pytesseract_process(filename)
+def run_tesseract(base64):
+    image = prepare_image(base64)
+    text = pytesseract_process(image)
 
-    os.remove(filename)
-
-    print(get_valor_total(text))
+    total = get_valor_total(text)
+    print(total)
     cnpj = get_CNPJ(text)
     print(cnpj)
-    print(get_from_CNPJ(cnpj))
-
+    dados = get_from_CNPJ(cnpj)
+    return total, dados
     # print(text)
 
